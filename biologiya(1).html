@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bakteriya Simulyatoru</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+:root {
+  --bg: #050d0a;
+  --surface: #0a1a12;
+  --border: #0f2a1a;
+  --accent: #00ff88;
+  --accent2: #ff4d6d;
+  --accent3: #ffd166;
+  --text: #d8f0e0;
+  --muted: #3a6b4a;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Space Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.container {
+  width: 100%;
+  max-width: 960px;
+  position: relative;
+  z-index: 1;
+}
+
+header {
+  margin-bottom: 36px;
+  animation: fadeDown 0.6s ease both;
+}
+
+.tag {
+  font-size: 11px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  opacity: 0.7;
+}
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(26px, 5vw, 44px);
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+h1 span { color: var(--accent); }
+.subtitle { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+.controls {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+
+.control-group label {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.control-group .val {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.control-group .val.drug { color: var(--accent2); }
+.control-group .val.speed { color: var(--accent3); }
+
+input[type=range] {
+  width: 100%;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+#drugSlider::-webkit-slider-thumb { background: var(--accent2); }
+#speedSlider::-webkit-slider-thumb { background: var(--accent3); }
+
+.btn-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+.btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 11px 24px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-start {
+  background: var(--accent);
+  color: var(--bg);
+}
+.btn-start:hover {
+  background: #33ffaa;
+  box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+  transform: translateY(-1px);
+}
+
+.btn-stop {
+  background: transparent;
+  border: 1px solid var(--accent2);
+  color: var(--accent2);
+}
+.btn-stop:hover { background: rgba(255,77,109,0.1); }
+
+.btn-reset {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-reset:hover { border-color: var(--muted); color: var(--text); }
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+
+@media(max-width: 640px) {
+  .main-grid { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-header .badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(0,255,136,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(0,255,136,0.2);
+}
+
+canvas { display: block; width: 100%; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+
+@media(max-width: 640px) {
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.stat-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.stat-value.green { color: var(--accent); }
+.stat-value.red { color: var(--accent2); }
+.stat-value.yellow { color: var(--accent3); }
+.stat-value.white { color: var(--text); }
+
+@keyframes fadeDown {
+  from { opacity:0; transform:translateY(-20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="tag">Biologiya Simulyatoru</div>
+    <h1>Bakteriya <span>Böyüməsi</span></h1>
+    <p class="subtitle">Bölünmə · İlaç Təsiri · Populyasiya Dinamikası</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>Başlanğıc Bakteriya Sayı</label>
+      <div class="val" id="initVal">10</div>
+      <input type="range" id="initSlider" min="1" max="50" value="10">
+    </div>
+    <div class="control-group">
+      <label>İlaç Dozu</label>
+      <div class="val drug" id="drugVal">0%</div>
+      <input type="range" id="drugSlider" min="0" max="100" value="0">
+    </div>
+    <div class="control-group">
+      <label>Animasiya Sürəti</label>
+      <div class="val speed" id="speedVal">Orta</div>
+      <input type="range" id="speedSlider" min="1" max="5" value="3">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-start" onclick="startSim()">▶ Başlat</button>
+    <button class="btn btn-stop" onclick="stopSim()">⏸ Durdur</button>
+    <button class="btn btn-reset" onclick="resetSim()">↺ Sıfırla</button>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        Petri Qabı
+        <span class="badge" id="liveCount">0 bakteriya</span>
+      </div>
+      <canvas id="petri" height="320"></canvas>
+    </div>
+    <div class="panel">
+      <div class="panel-header">Populyasiya Qrafiki</div>
+      <canvas id="chart" height="320"></canvas>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Canlı Bakteriya</div>
+      <div class="stat-value green" id="statAlive">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ölü Bakteriya</div>
+      <div class="stat-value red" id="statDead">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Nəsil Sayı</div>
+      <div class="stat-value yellow" id="statGen">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Bölünmə Sürəti</div>
+      <div class="stat-value white" id="statRate">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Controls
+const initSlider = document.getElementById('initSlider');
+const drugSlider = document.getElementById('drugSlider');
+const speedSlider = document.getElementById('speedSlider');
+
+initSlider.oninput = () => document.getElementById('initVal').textContent = initSlider.value;
+drugSlider.oninput = () => {
+  const v = parseInt(drugSlider.value);
+  document.getElementById('drugVal').textContent = v + '%';
+  drugDose = v / 100;
+  if (running) applyDrug();
+};
+speedSlider.oninput = () => {
+  const labels = ['', 'Çox Yavaş', 'Yavaş', 'Orta', 'Sürətli', 'Çox Sürətli'];
+  document.getElementById('speedVal').textContent = labels[speedSlider.value];
+  simSpeed = parseInt(speedSlider.value);
+};
+
+// State
+let bacteria = [];
+let deadBacteria = [];
+let generation = 0;
+let totalDead = 0;
+let running = false;
+let animFrame = null;
+let lastTime = 0;
+let drugDose = 0;
+let simSpeed = 3;
+let history = []; // [{alive, dead}]
+let tickCount = 0;
+
+const PETRI_W = () => document.getElementById('petri').offsetWidth;
+const PETRI_H = 320;
+const PETRI_R = () => Math.min(PETRI_W(), PETRI_H) * 0.45;
+
+class Bacterium {
+  constructor(x, y, alive=true) {
+    this.x = x; this.y = y;
+    this.alive = alive;
+    this.age = 0;
+    this.divideTimer = 80 + Math.random() * 60;
+    this.vx = (Math.random()-0.5)*0.4;
+    this.vy = (Math.random()-0.5)*0.4;
+    this.size = 4 + Math.random()*3;
+    this.opacity = 1;
+    this.dying = false;
+    this.dyingTimer = 0;
+  }
+}
+
+function spawnInitial() {
+  bacteria = [];
+  deadBacteria = [];
+  generation = 0; totalDead = 0; history = []; tickCount = 0;
+  const n = parseInt(initSlider.value);
+  const cx = PETRI_W()/2, cy = PETRI_H/2;
+  for (let i = 0; i < n; i++) {
+    const angle = Math.random()*Math.PI*2;
+    const r = Math.random()*PETRI_R()*0.3;
+    bacteria.push(new Bacterium(cx+Math.cos(angle)*r, cy+Math.sin(angle)*r));
+  }
+}
+
+function applyDrug() {
+  if (drugDose === 0) return;
+  bacteria.forEach(b => {
+    if (!b.alive || b.dying) return;
+    const killChance = drugDose * 0.03;
+    if (Math.random() < killChance) {
+      b.dying = true;
+      b.dyingTimer = 30;
+    }
+  });
+}
+
+function tick() {
+  tickCount++;
+  const cx = PETRI_W()/2, cy = PETRI_H/2;
+  const pr = PETRI_R();
+
+  // Move & age bacteria
+  bacteria.forEach(b => {
+    if (!b.alive) return;
+    b.age++;
+    b.x += b.vx + (Math.random()-0.5)*0.3;
+    b.y += b.vy + (Math.random()-0.5)*0.3;
+
+    // Keep inside petri
+    const dx = b.x - cx, dy = b.y - cy;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    if (dist > pr - 10) {
+      b.x = cx + (dx/dist)*(pr-10);
+      b.y = cy + (dy/dist)*(pr-10);
+      b.vx *= -0.5; b.vy *= -0.5;
+    }
+
+    // Dying logic
+    if (b.dying) {
+      b.dyingTimer--;
+      b.opacity = b.dyingTimer / 30;
+      if (b.dyingTimer <= 0) {
+        b.alive = false;
+        totalDead++;
+        deadBacteria.push({x:b.x, y:b.y, size:b.size});
+      }
+      return;
+    }
+
+    // Divide
+    b.divideTimer--;
+    const speedMult = [0, 3, 2, 1, 0.6, 0.35][simSpeed];
+    if (b.divideTimer <= 0 && bacteria.filter(x=>x.alive).length < 300) {
+      const growthFactor = 1 - drugDose * 0.85;
+      if (Math.random() < growthFactor) {
+        const angle = Math.random()*Math.PI*2;
+        const offset = b.size * 2;
+        const nx = b.x + Math.cos(angle)*offset;
+        const ny = b.y + Math.sin(angle)*offset;
+        bacteria.push(new Bacterium(nx, ny));
+        generation++;
+      }
+      b.divideTimer = (80 + Math.random()*60) * speedMult;
+    }
+  });
+
+  // Drug effect each tick
+  if (drugDose > 0 && tickCount % 8 === 0) {
+    applyDrug();
+  }
+
+  // Record history every 20 ticks
+  if (tickCount % 20 === 0) {
+    const alive = bacteria.filter(b=>b.alive).length;
+    history.push({alive, dead: totalDead});
+    if (history.length > 80) history.shift();
+  }
+
+  updateStats();
+}
+
+function updateStats() {
+  const alive = bacteria.filter(b=>b.alive).length;
+  document.getElementById('statAlive').textContent = alive;
+  document.getElementById('statDead').textContent = totalDead;
+  document.getElementById('statGen').textContent = generation;
+  document.getElementById('liveCount').textContent = alive + ' bakteriya';
+  const rate = drugDose > 0.7 ? 'Azalır ↓' : drugDose > 0.3 ? 'Yavaş ↑' : 'Artır ↑';
+  document.getElementById('statRate').textContent = rate;
+}
+
+function drawPetri() {
+  const canvas = document.getElementById('petri');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth;
+  canvas.width = W * dpr;
+  canvas.height = PETRI_H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, PETRI_H);
+
+  const cx = W/2, cy = PETRI_H/2, pr = PETRI_R();
+
+  // Petri dish background
+  ctx.beginPath();
+  ctx.arc(cx, cy, pr, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(0,40,20,0.6)';
+  ctx.fill();
+
+  // Drug tint
+  if (drugDose > 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,77,109,${drugDose*0.15})`;
+    ctx.fill();
+  }
+
+  // Petri border
+  ctx.beginPath();
+  ctx.arc(cx, cy, pr, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(0,255,136,0.15)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, pr+6, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(0,255,136,0.06)';
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  // Dead bacteria
+  deadBacteria.forEach(b => {
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.size*0.6, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(100,20,30,0.5)';
+    ctx.fill();
+  });
+
+  // Live bacteria
+  bacteria.forEach(b => {
+    if (!b.alive) return;
+    ctx.save();
+    ctx.globalAlpha = b.opacity;
+
+    // Glow
+    ctx.shadowColor = b.dying ? '#ff4d6d' : '#00ff88';
+    ctx.shadowBlur = b.dying ? 6 : 10;
+
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, b.size, b.size*0.6, b.age*0.05, 0, Math.PI*2);
+    ctx.fillStyle = b.dying
+      ? `rgba(255,100,80,${b.opacity})`
+      : `rgba(0,${180+Math.floor(Math.random()*40)},${80+Math.floor(Math.random()*40)},0.85)`;
+    ctx.fill();
+
+    ctx.restore();
+  });
+}
+
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth;
+  canvas.width = W * dpr;
+  canvas.height = PETRI_H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, PETRI_H);
+
+  if (history.length < 2) return;
+
+  const pad = {top:20, right:20, bottom:35, left:45};
+  const gW = W - pad.left - pad.right;
+  const gH = PETRI_H - pad.top - pad.bottom;
+
+  const maxVal = Math.max(...history.map(h=>Math.max(h.alive, h.dead)), 10);
+
+  const toX = i => pad.left + i/(history.length-1)*gW;
+  const toY = v => pad.top + (1 - v/maxVal)*gH;
+
+  // Grid
+  ctx.strokeStyle = 'rgba(15,42,26,1)';
+  ctx.lineWidth = 1;
+  for (let i=0;i<=4;i++) {
+    const y = pad.top + gH*i/4;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+gW,y); ctx.stroke();
+    ctx.fillStyle='#3a6b4a'; ctx.font='10px Space Mono,monospace'; ctx.textAlign='right';
+    ctx.fillText(Math.round(maxVal*(1-i/4)), pad.left-6, y+4);
+  }
+
+  // Area - alive
+  ctx.beginPath();
+  ctx.moveTo(toX(0), toY(0));
+  history.forEach((h,i) => ctx.lineTo(toX(i), toY(h.alive)));
+  ctx.lineTo(toX(history.length-1), toY(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,255,136,0.08)';
+  ctx.fill();
+
+  // Line - dead
+  ctx.beginPath();
+  history.forEach((h,i) => {
+    if(i===0) ctx.moveTo(toX(i), toY(h.dead));
+    else ctx.lineTo(toX(i), toY(h.dead));
+  });
+  ctx.strokeStyle = 'rgba(255,77,109,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Line - alive
+  ctx.beginPath();
+  history.forEach((h,i) => {
+    if(i===0) ctx.moveTo(toX(i), toY(h.alive));
+    else ctx.lineTo(toX(i), toY(h.alive));
+  });
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = 'rgba(0,255,136,0.4)';
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Labels
+  ctx.fillStyle = '#00ff88'; ctx.font = '10px Space Mono,monospace'; ctx.textAlign='left';
+  ctx.fillText('● Canlı', pad.left+4, pad.top+14);
+  ctx.fillStyle = '#ff4d6d';
+  ctx.fillText('- Ölü', pad.left+60, pad.top+14);
+
+  // X axis label
+  ctx.fillStyle = '#3a6b4a'; ctx.textAlign='center';
+  ctx.fillText('Zaman →', pad.left+gW/2, PETRI_H-6);
+}
+
+function loop(ts) {
+  if (!running) return;
+  const speedIntervals = [0, 120, 80, 45, 25, 12];
+  const interval = speedIntervals[simSpeed];
+  if (ts - lastTime > interval) {
+    tick();
+    lastTime = ts;
+  }
+  drawPetri();
+  drawChart();
+  animFrame = requestAnimationFrame(loop);
+}
+
+function startSim() {
+  if (bacteria.length === 0) spawnInitial();
+  running = true;
+  drugDose = parseInt(drugSlider.value)/100;
+  simSpeed = parseInt(speedSlider.value);
+  animFrame = requestAnimationFrame(loop);
+}
+
+function stopSim() {
+  running = false;
+  if (animFrame) cancelAnimationFrame(animFrame);
+}
+
+function resetSim() {
+  stopSim();
+  spawnInitial();
+  drawPetri();
+  drawChart();
+  updateStats();
+}
+
+window.addEventListener('resize', () => {
+  drawPetri(); drawChart();
+});
+
+// Init draw
+spawnInitial();
+drawPetri();
+updateStats();
+</script>
+</body>
+</html>
